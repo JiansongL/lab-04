@@ -2,6 +2,7 @@
 Run vm_pub.py in a separate terminal on your VM."""
 
 import paho.mqtt.client as mqtt
+import time
 
 """This function (or "callback") will be executed when this client receives 
 a connection acknowledgement packet response from the server. """
@@ -14,10 +15,12 @@ def on_connect(client, userdata, flags, rc):
 
     print("Connected to server (i.e., broker) with result code "+str(rc))
     #replace user with your USC username in all subscriptions
-    client.subscribe("lijianso/date_time")
+    # client.subscribe("msg: ")
+    client.subscribe("lijianso/ping")
+    client.message_callback_add("lijianso/ping", on_message)
     
     #Add the custom callbacks by indicating the topic and the name of the callback handle
-    client.message_callback_add("lijianso/date_time", on_message_from_ipinfo)
+    # client.message_callback_add("lijianso/ping", on_message_from_pong)
 
 
 """This object (functions are objects!) serves as the default callback for 
@@ -26,10 +29,11 @@ subscribed to. By "default,"" we mean that this callback is called if a custom
 callback has not been registered using paho-mqtt's message_callback_add()."""
 def on_message(client, userdata, msg):
     print("Default callback - topic: " + msg.topic + "   msg: " + str(msg.payload, "utf-8"))
-
-#Custom message callback.
-def on_message_from_ipinfo(client, userdata, message):
-   print("Custom callback  - IP Message: "+message.payload.decode())
+    message = int(msg.payload.decode())
+    message += 1
+    client.publish("lijianso/pong", message)
+    print(f"{message} published")
+    time.sleep(1)
 
 
 
@@ -38,10 +42,10 @@ if __name__ == '__main__':
     
     #create a client object
     client = mqtt.Client()
-    #attach a default callback which we defined above for incoming mqtt messages
-    client.on_message = on_message
     #attach the on_connect() callback function defined above to the mqtt client
     client.on_connect = on_connect
+    
+    time.sleep(1)
 
     """Connect using the following hostname, port, and keepalive interval (in 
     seconds). We added "host=", "port=", and "keepalive=" for illustrative 
@@ -53,7 +57,7 @@ if __name__ == '__main__':
     server in the event no messages have been published from or sent to this 
     client. If the connection request is successful, the callback attached to
     `client.on_connect` will be called."""    
-    client.connect(host="68.181.32.115", port=11000, keepalive=60)
+    client.connect(host="192.168.43.198", port=1883, keepalive=60)
 
     """In our prior labs, we did not use multiple threads per se. Instead, we
     wrote clients and servers all in separate *processes*. However, every 
